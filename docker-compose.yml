@@ -1,0 +1,28 @@
+version: "3.4"
+services:
+  api:
+    container_name: "bodylog-api"
+    build: ./backend/
+    expose: [8080, 80]
+    ports:
+      - "8081:8080"
+    volumes:
+      - "./backend/src/:/app"
+    healthcheck:
+      test: python3 -c "from urllib.request import urlopen; assert 200 == urlopen('http://127.0.0.1:8080').status"
+      interval: 1m00s
+      timeout: 10s
+      retries: 1
+      start_period: 10s
+    working_dir: "/app/"
+    command: ["python3", "run.py"]
+  www:
+    container_name: "bodylog-www"
+    depends_on: ["api"]
+    build:
+      context: ./frontend/
+      dockerfile: Dockerfile-dev
+    expose: [8080, 80]
+    ports:
+      - "8082:8080/tcp"
+

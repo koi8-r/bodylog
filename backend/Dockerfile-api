@@ -1,0 +1,13 @@
+FROM vpburchenya/py3-ws
+LABEL maintainer="Burchenya Valentin <vp.burchenya@oz.net.ru>"
+
+
+ENV WD "/app"
+RUN mkdir ${WD}
+WORKDIR ${WD}
+COPY requirements.txt ${WD}
+RUN pip3 install --no-cache-dir -r requirements.txt
+COPY ./src/ ${WD}
+
+EXPOSE 8080
+CMD ["python3", "./run.py"]
