@@ -1,4 +1,6 @@
 ---
 - |
     FabricIO boto3 build script
+- Failed task restarting
+- Default beanstalk multidocker app AMI and user data
 
