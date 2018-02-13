@@ -1,0 +1,6 @@
+- https://github.com/aws/amazon-ecs-cli#launching-an-aws-fargate-task
+- https://docs.aws.amazon.com/AmazonECS/latest/developerguide/ECS_AWSCLI_Fargate.html
+- http://blog.scottlogic.com/2017/12/15/aws-fargate.html
+- http://somanymachines.com/fargate/
+- https://github.com/jpignata/fargate
+- https://docs.docker.com/engine/swarm/stack-deploy/#test-the-app-with-compose
