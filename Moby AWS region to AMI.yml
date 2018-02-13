@@ -1,0 +1,19 @@
+---
+description: |
+    Moby Linux 17.12.0-ce-aws1 stable
+    The best OS for running Docker
+map:
+    ap-northeast-1": ami-3d940d5b
+    ap-northeast-2": ami-61bd1d0f
+    ap-south-1: ami-b3c793dc
+    ap-southeast-1 : ami-4ef18132
+    ap-southeast-2: ami-99a75afb
+    ca-central-1: ami-2afc794e
+    eu-central-1: ami-70f7651f
+    eu-west-1: ami-7abe2e03
+    eu-west-2: ami-7b81991f
+    sa-east-1: ami-a72466cb
+    us-east-1: ami-6ebce314
+    us-east-2: ami-2eac874b
+    us-west-1: ami-42f3f322
+    us-west-2: ami-98bc08e0
