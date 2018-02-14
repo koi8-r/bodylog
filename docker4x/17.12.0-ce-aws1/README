@@ -1,0 +1,2 @@
+docker run -it --rm --name init-aws --entrypoint cat docker4x/init-aws:17.12.0-ce-aws1 /entry.sh > docker4x_init-aws_entry.sh
+
