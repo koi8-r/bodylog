@@ -1,17 +1,50 @@
 import boto3 as aws
-import botocore as aws_core
+from botocore.exceptions import ClientError
+
+
+def mk_attr(value):
+    if isinstance(value, (str, int)):
+        return dict(StringValue=str(value), DataType='String')
+    else:
+        raise ValueError('Cant make attribute from type {}'.format(type(value).__name__))
+
+
+class Q(object):
+    def __init__(self, sqs, name='test.fifo') -> None:
+        super().__init__()
+        self.sqs = sqs
+
+        def mk():
+            """$ aws sqs create-queue --queue-name <name>.fifo --attribute FifoQueue=true"""
+            try:
+                q = self.sqs.get_queue_by_name(QueueName=name)
+                assert q.attributes['FifoQueue'], 'Conflict: not a FIFO queue "{}" already exists'.format(name)
+            except ClientError as e:
+                if type(e).__name__ == 'QueueDoesNotExist':
+                    q = self.sqs.create_queue(QueueName=name, Attributes={'FifoQueue': 'true'})
+                elif type(e).__name__ == 'QueueDeletedRecently':
+                    from time import sleep
+                    sleep(60)
+                    return mk()
+                else:
+                    raise e
+
+            return q
+
+        self.q = mk()
+
+    def send(self, message):
+        # aws sqs send-message --message-deduplication-id <rand> \
+        # --queue-url <url> --message-group-id <name> --message-body <text>
+        self.q.send_message(MessageBody=message,
+                            MessageAttributes={'UA': mk_attr('py3')},
+                            MessageDeduplicationId='Z' * 128,
+                            MessageGroupId='main')
 
 
 sess = aws.Session(profile_name='default')
-# ec2 = sess.client('ec2')  # client api
-ec2 = sess.resource('ec2')  # resource api
-for instance in ec2.instances.all():
-    print(instance.state['Name'])
+sqs = sess.resource('sqs')  # resource api sqs
+q = Q(sqs)
+q.send('Hello, World!')
 
-# https://docs.aws.amazon.com/cli/latest/reference/sqs/index.html
-# https://boto3.readthedocs.io/en/latest/guide/sqs.html
-# https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/Welcome.html
-sqs = sess.resource('sqs')  # resource sqs
-# aws sqs create-queue --queue-name test.fifo --attribute FifoQueue=true
-queue = sqs.create_queue(QueueName='test', Attributes={'FifoQueue': True})
-# aws sqs send-message --message-deduplication-id 128 --queue-url https://us-east-2.queue.amazonaws.com/495457580904/test.fifo --message-group-id main --message-body hello
+print('\n'.join(_ for _ in (q.attributes['QueueArn'].split(':')[-1] for q in sqs.queues.all())))
