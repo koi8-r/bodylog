@@ -2,12 +2,18 @@ FROM vpburchenya/py3-ws
 LABEL maintainer="Burchenya Valentin <vp.burchenya@oz.net.ru>"
 
 
-ENV WD "/app"
-RUN mkdir ${WD}
-WORKDIR ${WD}
-COPY requirements.txt ${WD}
+ENV WD /app
+WORKDIR $WD
+
+COPY requirements.txt .
 RUN pip3 install --no-cache-dir -r requirements.txt
-COPY ./src/ ${WD}
+
+COPY ./src/ .
+COPY ./ep.sh .
+RUN chmod +x ep.sh
 
 EXPOSE 8080
-CMD ["python3", "./run.py"]
+
+ENTRYPOINT ["/app/ep.sh"]
+CMD ["python3", "/app/run.py"]
+
