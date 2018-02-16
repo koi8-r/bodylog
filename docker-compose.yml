@@ -2,27 +2,64 @@ version: "3.4"
 services:
   api:
     container_name: "bodylog-api"
+    image: vpburchenya/bodylog-api:latest
     build: ./backend/
     expose: [8080, 80]
     ports:
       - "8081:8080"
-    volumes:
-      - "./backend/src/:/app"
+    networks:
+      - bodylog-net
+    # volumes from:
+    #  - "./backend/src/:/app"
     healthcheck:
       test: python3 -c "from urllib.request import urlopen; assert 200 == urlopen('http://127.0.0.1:8080').status"
       interval: 1m00s
       timeout: 10s
       retries: 1
       start_period: 10s
+    deploy:
+      mode: replicated  # global
+      labels: 
+        - ru.net.oz.app=bodylog-api
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints: [node.role == manager]
     working_dir: "/app/"
     command: ["python3", "run.py"]
   www:
     container_name: "bodylog-www"
     depends_on: ["api"]
+    image: vpburchenya/bodylog-www:latest
     build:
       context: ./frontend/
       dockerfile: Dockerfile-dev
     expose: [8080, 80]
     ports:
       - "8082:8080/tcp"
+    networks:
+      - bodylog-net
+    deploy:
+      replicas: 1
+      labels:
+        - ru.net.oz.app=bodylog-www
+      restart_policy:
+        condition: on-failure
+        delay: 60s
+        max_attempts: 3
+        window: 120s
+  visualizer:
+    image: dockersamples/visualizer:stable
+    ports:
+      - "8090:8080"
+    stop_grace_period: 1m00s
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    deploy:
+      placement:
+        constraints: [node.role == manager]
+
+networks:
+  bodylog-net:
 
