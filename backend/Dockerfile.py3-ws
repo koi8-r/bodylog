@@ -1,0 +1,15 @@
+# vpburchenya/py3-ws
+FROM debian:buster-slim
+LABEL maintainer="Burchenya Valentin <vp.burchenya@oz.net.ru>"
+
+
+ENV LANG C.UTF-8
+ENV DEBIAN_FRONTEND noninteractive
+RUN apt-get update -qq
+RUN apt-get install --no-install-recommends -qy \
+                    python3.6 \
+                    python3-pip \
+                    python3-wheel \
+                    python3-setuptools \
+                    python3-venv \
+    && rm -rf /var/lib/apt/lists/*

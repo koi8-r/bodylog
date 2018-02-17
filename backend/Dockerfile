@@ -1,15 +1,21 @@
-FROM debian:stretch-slim
+# pip-dependencies
+FROM vpburchenya/py3-ws as pip-dependencies
+COPY requirements.txt .
+RUN pip3 install --no-cache-dir -r requirements.txt
+
+
+# vpburchenya/bodylog-api
+FROM pip-dependencies
 LABEL maintainer="Burchenya Valentin <vp.burchenya@oz.net.ru>"
 
 
-ENV LANG C.UTF-8
-ENV DEBIAN_FRONTEND noninteractive
-RUN apt-get update -qq
-RUN apt-get install --no-install-recommends -qy \
-                    python3.5-minimal \
-                    python3.5 \
-                    python3-pip \
-                    python3-setuptools \
-    && rm -rf /var/lib/apt/lists/*
+WORKDIR /usr/local/app
 
-RUN pip3 install --no-cache-dir aiohttp
+COPY ./src/ .
+COPY ./ep.sh .
+RUN chmod +x ep.sh
+
+EXPOSE 8080
+
+ENTRYPOINT ["/usr/local/app/ep.sh"]
+CMD ["python3", "/usr/local/app/run.py"]
