@@ -1,3 +1,4 @@
+# ephemeral container
 FROM vpburchenya/py3-ws
 LABEL maintainer="Burchenya Valentin <vp.burchenya@oz.net.ru>"
 
