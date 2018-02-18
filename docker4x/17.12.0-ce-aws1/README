@@ -1,2 +1,8 @@
 docker run -it --rm --name init-aws --entrypoint cat docker4x/init-aws:17.12.0-ce-aws1 /entry.sh > docker4x_init-aws_entry.sh
+docker run -it --rm --name init-aws --entrypoint /bin/sh docker4x/meta-aws:17.12.0-ce-aws1
+docker image inspect <hash>
 
+- init: Sets up the swarm and makes sure that the stack came up properly. (checks manager+worker count).
+- shell: This is our shell/ssh container. When you SSH into an instance, you’re actually in this container.
+- meta: Assist in creating the swarm cluster, giving privileged instances the ability to join the swarm.
+- l4controller: Listens for ports exposed at the docker CLI level and opens them in the load balancer.
