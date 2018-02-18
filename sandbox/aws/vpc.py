@@ -6,6 +6,8 @@ import yaml
 # language=YAML
 example = """\
 network:
+    instances:
+        - docker-swarm
     vpc:
         id:
         instances:
