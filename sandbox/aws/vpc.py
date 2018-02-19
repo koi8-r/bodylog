@@ -28,6 +28,7 @@ try:
                                                         'Values': ['oz.internal']}])
 
     vpc = ec2.create_vpc(CidrBlock='10.0.0.0/28')
+    vpc.create_tags(Tags=[dict(Key='Name', Value='docker-swarm-vpc')])
     vpc.associate_dhcp_options(DhcpOptionsId=dhcp.id)
     # vpc.associate_gw
 
