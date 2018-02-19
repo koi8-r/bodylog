@@ -6,32 +6,19 @@ import yaml
 # language=YAML
 example = """\
 network:
-    instances:
-        - docker-swarm
+    # empty values replaces with actual data from aws during execution
     vpc:
         id:
-        instances:
+        name: docker-swarm-vpc  # only one vpc instance with this name
+        cidr: '10.0.0.0/28'
+        dhcp:
+            id:
+            domain: oz.internal
         gw:
-        if:
-        route:
-        fw:
-        net:
-
-    dhcp:
-        id:
-        domain:
+            id:
 """
 
-
-class Networking(object):
-    def __init__(self):
-        self.vpc_id = None
-        self.dhcp_id = None
-        self.domain = None
-
-
-res = Networking()
-
+# yaml.load(example)
 
 try:
     ec2 = aws.Session().resource('ec2')
@@ -44,8 +31,8 @@ try:
     vpc.associate_dhcp_options(DhcpOptionsId=dhcp.id)
     # vpc.associate_gw
 
-    res.vpc_id = vpc.id
-    res.dhcp_id, res.domain = dhcp.id, 'oz.internal'
-    print(yaml.safe_dump(res.__dict__))
+    print(yaml.safe_dump(dict(vpc_id=vpc.id,
+                              dhcp_id=dhcp.id,
+                              dhcp_domain=dhcp.domain)))
 except ClientError as e:
     raise Exception('{}: "{}"'.format(*e.response['Error'].values()))
