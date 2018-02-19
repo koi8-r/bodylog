@@ -4,6 +4,7 @@
 /awscred.txt
 /*.pem
 /venv/
+**/*.retry
 
 # Elastic Beanstalk Files
 .elasticbeanstalk/*

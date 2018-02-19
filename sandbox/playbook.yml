@@ -1,0 +1,12 @@
+---
+- hosts: 127.0.0.1
+  connection: local
+  tasks:
+      - docker_image:
+          name: vpburchenya/bodylog-api
+          path: ../backend/
+          dockerfile: Dockerfile
+          tag: latest
+          force: true
+          pull: true
+          push: false
