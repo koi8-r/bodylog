@@ -1,0 +1,59 @@
+---
+- name: Init AWS cloud
+  hosts: 127.0.0.1
+  connection: local
+  gather_facts: no
+  tags: [aws]
+  vars:
+    project_name: docker
+    aws_access_key_id:     "{{ lookup('ini', 'aws_access_key_id section=default file=~/.aws/credentials') }}"
+    aws_secret_access_key: "{{ lookup('ini', 'aws_secret_access_key section=default file=~/.aws/credentials') }}"
+    aws_env: staging
+    aws_instance_type: t2.micro
+    aws_region: us-east-2
+    aws_ami: ami-2eac874b
+
+  tasks:
+    - name: Show AWS key
+      debug:
+        msg: "{{aws_access_key_id}}:{{aws_secret_access_key}}"
+
+    - name: Create AWS security group
+      ec2_group:
+        name: &sec_group_name "{{project_name}} security group"
+        description: *sec_group_name
+        region: "{{ aws_region }}"
+        # aws_access_key
+        # aws_secret_key
+        purge_rules: true
+        purge_rules_egress: true
+        purge_tags: true
+        rules:
+          - proto: icmp
+            from_port: 8 # type
+            to_port:  -1 # subtype
+            cidr_ip: '0.0.0.0/0'
+            group_name: icmp-ping
+            group_desc: Allow ICMP ping
+          - proto: tcp
+            ports: 22
+            cidr_ip: '0.0.0.0/0'
+            group_name: ssh
+            group_desc: Allow SSH
+          - proto: tcp
+            ports:
+              - 80
+              - 443
+              - 8080-8089
+            cidr_ip:
+              - '0.0.0.0/0'
+            group_name:
+              - web
+              #- www
+              #- api
+            group_desc: Allow WEB
+        rules_egress:
+          - proto: all
+            cidr_ip: '0.0.0.0/0'
+
+      register: firewall  # firewall.vpc_id, .group_id

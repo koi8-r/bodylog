@@ -1,12 +1,29 @@
 ---
-- hosts: 127.0.0.1
+- name: Build docker env
+  hosts: 127.0.0.1
   connection: local
+  gather_facts: no
+  tags: ["{{ project_name }}-web"]
+  vars:
+    project_name: bodylog
+
   tasks:
-      - docker_image:
-          name: vpburchenya/bodylog-api
-          path: ../backend/
-          dockerfile: Dockerfile
-          tag: latest
-          force: true
-          pull: true
-          push: false
+    - name: "Build {{ project_name }}-API docker image"
+      docker_image:
+        name: "vpburchenya/{{ project_name }}-api"
+        path: ../backend/
+        dockerfile: Dockerfile
+        tag: latest
+        force: true
+        pull: true
+        push: false
+
+    - name: "Build {{ project_name }}-WWW docker image"
+      docker_image:
+        name: "vpburchenya/{{ project_name }}-www"
+        path: ../frontend/
+        dockerfile: Dockerfile
+        tag: latest
+        force: true
+        pull: true
+        push: false
