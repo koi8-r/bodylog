@@ -17,6 +17,8 @@
         force: true
         pull: true
         push: false
+      register: results_api
+      notify: debug image id
 
     - name: "Build {{ project_name }}-WWW docker image"
       docker_image:
@@ -27,3 +29,15 @@
         force: true
         pull: true
         push: false
+      register: results_www
+      notify: debug image id
+
+  handlers:
+      - name: debug api image id
+        debug:
+            msg: "{{ results_api.image.Id }}"
+        listen: debug image id
+      - name: debug www image id
+        debug:
+            msg: "{{ results_www.image.Id }}"
+        listen: debug image id
