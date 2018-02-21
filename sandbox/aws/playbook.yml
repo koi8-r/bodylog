@@ -47,7 +47,7 @@
           - proto: all
             cidr_ip: '0.0.0.0/0'
 
-      register: firewall  # firewall.vpc_id, .group_id
+      register: fw  # fw.vpc_id, .group_id
       notify: security group create
 
     - name: Create AWS SSH key
@@ -60,9 +60,22 @@
     #   copy: content="{{ssh_key.private.key}}" dest="{{project_name}}-{{env}}-key.pem" 0400
     #   when: ssh_key.changed
 
+    - name: Create AWS instance
+      ec2:
+        key_name: "{{project_name}}-{{env}}-key"
+        region: "{{aws_region}}"
+        group_id: "{{ fw.group_id }}"
+        instance_type: "{{aws_instance_type}}"
+        image: "{{aws_ami}}"
+        instance_tags:
+            env: "{{env}}"
+        count_tag: env
+        exact_count: 1
+        wait: true
+      register: instance
 
   handlers:
       - name: security group create
         debug:
-            msg: "Security group {{ firewall.group_id }} created or modified for VPC {{ firewall.vpc_id }}"
-        when: firewall | changed
+            msg: "Security group {{ fw.group_id }} created or modified for VPC {{ fw.vpc_id }}"
+        when: fw | changed
