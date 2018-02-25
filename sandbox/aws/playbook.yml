@@ -41,7 +41,7 @@
       ec2_vpc_net:
         name: &vpc_name "{{app_name}}-vpc"
         region: "{{aws_region}}"
-        cidr_block: '192.168.100.0/24'
+        cidr_block: '192.168.0.0/20'
         dns_hostnames: true
         dns_support: true
         tenancy: default
@@ -83,7 +83,7 @@
         region: "{{aws_region}}"
         # az:
         # map_public:
-        cidr: '192.168.100.0/24'
+        cidr: '192.168.0.0/20'
         tags:
           <<: *default_tags
           Name: "{{app_name}}-subnet"
@@ -162,19 +162,37 @@
       when: ssh_key.changed
       tags: [ssh]
 
+    - ec2_eni_facts:
+        region: "{{aws_region}}"
+        filters:
+          private-ip-address: '192.168.15.1'
+          vpc-id: "{{ vpc.vpc.id }}"
+          subnet-id: "{{ subnet.subnet.id }}"
+      register: nic_facts
+
+    - debug:
+        var: nic_facts
+      when: not true
+
     # EC2:NIC
     - name: Create NIC
       ec2_eni:
         description: "{{app_name}}-nic"
         region: "{{aws_region}}"
         device_index: 0
-        private_ip_address: '192.168.100.100'
+        private_ip_address: '192.168.15.1'  # zero subnet reserved
+        secondary_private_ip_address_count: 0
         subnet_id: "{{ subnet.subnet.id }}"
         security_groups:
           - "{{fw.group_id}}"
         delete_on_termination: true
       register: nic  # nic.interface.id
       tags: [nic]
+      when: true or not nic_facts.network_interfaces  # bug, stub: changed every time
+      changed_when: nic.interface.private_ip_address != '192.168.15.1' or nic.interface.subnet_id != subnet.subnet.id or nic.interface.vpc_id != vpc.vpc.id
+
+    - debug:
+        var: nic
 
     # EC2:EIP
     - name: Create EIP
@@ -197,41 +215,51 @@
         image: "{{aws_ami}}"
         network_interfaces:
           - "{{nic.interface.id}}"
-        # user_data
+        # ec2 | changed: apk install python3
+        user_data: |
+          #!/bin/bash
+          touch /aws
+        #  apk update
+        #  apk install python3
         instance_tags:
           <<: *default_tags
           Name: "{{app_name}}-ec2"
-        count_tag: env
+        count_tag: Env
         exact_count: 1
         wait: true
-      register: ec2
+      register: ec2  # ec2.tagged_instances, .instances empty on reuse
 
     - debug:
         var: ec2
-
-    # ec2 | changed -> install python3
 
     - name: Add new instance to the host group
       add_host:
         hostname: "{{ item.public_ip }}"
         groupname: launched  # groups
-      with_items: "{{ ec2.instances }}"  # .tagged_instances
+      with_items: "{{ ec2.tagged_instances }}"  # .tagged_instances
 
-    # wait_for ssh tcp 22 port ready
+    - name: Wait for SSH
+      wait_for:
+        host: "{{item.public_ip}}"
+        port: 22
+        # state: started
+        # delay: 5
+        # timeout: 300
+      with_items: ec2.tagged_instances
+      when: ec2 | changed
 
+# load facts for instances with tag filter and execute deploy commands
 
 - name: Run this on each host
-  # ansible-playbook sandbox/aws/playbook.yml -t docker -i '18.218.98.217,' -e ansible_ssh_private_key_file=./sandbox/aws/docker-staging-key.pem
   remote_user: docker
   hosts:
     - launched
-    # - '18.218.98.217'
+  # sudo: true
   connection: ssh
   gather_facts: false
   tags: [docker]
   vars:
-    ssh_key_path: "./{{app_name}}-key.pem"
-    ansible_ssh_private_key_file: "{{ssh_key_path}}"
+    ansible_ssh_private_key_file: "./sandbox/aws/docker-staging-key.pem"
   tasks:
     - name: Uname
       raw: uname -a
