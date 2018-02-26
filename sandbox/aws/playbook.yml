@@ -15,33 +15,22 @@
     aws_region: us-east-2
     aws_ami: ami-2eac874b
     aws_amazon_ami: ami-f63b1193
+    network: '192.168.0.0/20'  # zero subnet is reserved, 15 subnet is max
+    ip: '192.168.15.1'
     default_tags: &default_tags
       Env: "{{env}}"
       Project: "{{project_name}}"
       App: "{{app_name}}"
-      # Date: "{{ansible_date_time.iso8601_micro}}" or pipe
 
 
   tasks:
-    - name: Show AWS key
-      debug:
-        msg: "{{aws_access_key_id}}:{{aws_secret_access_key}}"
-      tags: [aws_key]
-
-    - ec2_vpc_net_facts:
-        region: "{{aws_region}}"
-      register: vpc_facts
-      when: false
-    - debug:
-        var: vpc_facts
-      when: false
 
     # VPC:VPC
     - name: Create VPC
       ec2_vpc_net:
         name: &vpc_name "{{app_name}}-vpc"
         region: "{{aws_region}}"
-        cidr_block: '192.168.0.0/20'
+        cidr_block: "{{network}}"
         dns_hostnames: true
         dns_support: true
         tenancy: default
@@ -49,7 +38,7 @@
           <<: *default_tags
           Name: *vpc_name
       register: vpc  # vpc.vpc.id
-      tags: [net, vpc]
+      tags: [vpc]
 
     # VPC:DHCP
     - name: Create DHCP options
@@ -63,7 +52,7 @@
           <<: *default_tags
           Name: "{{app_name}}-dhcp"
       register: dhcp  # dhcp.dhcp_options_id
-      tags: [net, dhcp]
+      tags: [dhcp]
 
     # VPC:IGW
     - name: Create internet gateway
@@ -74,7 +63,7 @@
           <<: *default_tags
           Name: "{{app_name}}-igw"
       register: igw  # igw.gateway_id
-      tags: [net, igw]
+      tags: [igw]
 
     # VPC:Subnet
     - name: Create subnet
@@ -83,12 +72,12 @@
         region: "{{aws_region}}"
         # az:
         # map_public:
-        cidr: '192.168.0.0/20'
+        cidr: "{{network}}"
         tags:
           <<: *default_tags
           Name: "{{app_name}}-subnet"
       register: subnet
-      tags: [net, subnet]
+      tags: [subnet]
 
     # VPC:Route
     - name: Create subnet route table
@@ -96,10 +85,10 @@
         vpc_id: "{{vpc.vpc.id}}"
         region: "{{aws_region}}"
         subnets:
-          - "{{ subnet.subnet.id }}"
+          - "{{subnet.subnet.id}}"
         routes:
           - dest: 0.0.0.0/0
-            gateway_id: "{{ igw.gateway_id }}"
+            gateway_id: "{{igw.gateway_id}}"
         lookup: tag
         purge_routes: true
         purge_subnets: true
@@ -107,7 +96,7 @@
           <<: *default_tags
           Name: "{{app_name}}-route"
       register: route
-      tags: [net, route]
+      tags: [route]
 
     # VPC:Firewall
     - name: Create firewall
@@ -122,7 +111,9 @@
             to_port:  -1 # subtype
             cidr_ip: '0.0.0.0/0'
           - proto: tcp
-            ports: 22
+            ports:
+              - 22
+              - 2222
             cidr_ip: '0.0.0.0/0'
           - proto: tcp
             ports:
@@ -141,7 +132,7 @@
           <<: *default_tags
           Name: *vpc_name
       register: fw  # fw.group_id
-      tags: [net, fw]
+      tags: [fw]
 
 
     # EC2:SSH
@@ -165,11 +156,10 @@
     - ec2_eni_facts:
         region: "{{aws_region}}"
         filters:
-          private-ip-address: '192.168.15.1'
-          vpc-id: "{{ vpc.vpc.id }}"
-          subnet-id: "{{ subnet.subnet.id }}"
+          private-ip-address: "{{ip}}"
+          vpc-id: "{{vpc.vpc.id}}"
+          subnet-id: "{{subnet.subnet.id}}"
       register: nic_facts
-
     - debug:
         var: nic_facts
       when: not true
@@ -180,19 +170,18 @@
         description: "{{app_name}}-nic"
         region: "{{aws_region}}"
         device_index: 0
-        private_ip_address: '192.168.15.1'  # zero subnet reserved
+        private_ip_address: "{{ip}}"
         secondary_private_ip_address_count: 0
-        subnet_id: "{{ subnet.subnet.id }}"
+        subnet_id: "{{subnet.subnet.id}}"
         security_groups:
           - "{{fw.group_id}}"
         delete_on_termination: true
       register: nic  # nic.interface.id
       tags: [nic]
       when: true or not nic_facts.network_interfaces  # bug, stub: changed every time
-      changed_when: nic.interface.private_ip_address != '192.168.15.1' or nic.interface.subnet_id != subnet.subnet.id or nic.interface.vpc_id != vpc.vpc.id
-
-    - debug:
-        var: nic
+      changed_when: nic.interface.private_ip_address != ip or
+                    nic.interface.subnet_id != subnet.subnet.id or
+                    nic.interface.vpc_id != vpc.vpc.id
 
     # EC2:EIP
     - name: Create EIP
@@ -218,9 +207,9 @@
         # ec2 | changed: apk install python3
         user_data: |
           #!/bin/bash
-          touch /aws
-        #  apk update
-        #  apk install python3
+          echo "Port 2222" >> /etc/ssh/sshd_config
+          /usr/sbin/sshd -D -f /etc/ssh/sshd_config
+          # apk -U add python3
         instance_tags:
           <<: *default_tags
           Name: "{{app_name}}-ec2"
@@ -229,32 +218,29 @@
         wait: true
       register: ec2  # ec2.tagged_instances, .instances empty on reuse
 
-    - debug:
-        var: ec2
-
     - name: Add new instance to the host group
       add_host:
-        hostname: "{{ item.public_ip }}"
+        hostname: "{{item.public_ip}}"
         groupname: launched  # groups
-      with_items: "{{ ec2.tagged_instances }}"  # .tagged_instances
+      with_items: "{{ec2.tagged_instances}}"  # .tagged_instances
+      changed_when: not true
 
     - name: Wait for SSH
       wait_for:
         host: "{{item.public_ip}}"
         port: 22
-        # state: started
-        # delay: 5
-        # timeout: 300
-      with_items: ec2.tagged_instances
+        state: started
+        delay: 5
+        timeout: 300
+      with_items: "{{ec2.tagged_instances}}"
       when: ec2 | changed
 
-# load facts for instances with tag filter and execute deploy commands
 
-- name: Run this on each host
+# Alt.: load facts for instances with tag filter and execute deploy commands
+- name: Container bootstrap
   remote_user: docker
   hosts:
     - launched
-  # sudo: true
   connection: ssh
   gather_facts: false
   tags: [docker]
@@ -266,3 +252,8 @@
       register: stdout
     - debug:
         msg: "{{stdout.stdout_lines | join('')}}"
+    - name: Install Py3
+      become: true
+      become_method: sudo
+      become_user: root
+      raw: apk -U add python3

@@ -2,7 +2,7 @@
 /backend/venv/
 *.pyc
 /awscred.txt
-/*.pem
+*.pem
 /venv/
 **/*.retry
 
