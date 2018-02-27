@@ -6,3 +6,12 @@ docker image inspect <hash>
 - shell: This is our shell/ssh container. When you SSH into an instance, you’re actually in this container.
 - meta: Assist in creating the swarm cluster, giving privileged instances the ability to join the swarm.
 - l4controller: Listens for ports exposed at the docker CLI level and opens them in the load balancer.
+- docker4x/guide-aws
+
+docker run -it --rm -v /:/mnt/host/ docker4x/shell-aws:17.12.0-ce-aws1 sh
+# load tar containers
+# execute userdata from aws metadata fake server
+# busybox /init
+# /etc/init.d/aws, /etc/init.d/docker
+# --privileged
+# --net=host --ipc=host --uts=host --pid=host --security-opt=seccomp=unconfined

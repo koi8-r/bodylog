@@ -204,12 +204,10 @@
         image: "{{aws_ami}}"
         network_interfaces:
           - "{{nic.interface.id}}"
-        # ec2 | changed: apk install python3
         user_data: |
-          #!/bin/bash
-          echo "Port 2222" >> /etc/ssh/sshd_config
-          /usr/sbin/sshd -D -f /etc/ssh/sshd_config
-          # apk -U add python3
+          #!/bin/sh
+          docker exec -ti shell-aws apk -U add python3
+          # start-stop-daemon --start --background --user nobody -g nogroup --exec nc -- -l -p 2222 0.0.0.0 -e /bin/hostname
         instance_tags:
           <<: *default_tags
           Name: "{{app_name}}-ec2"
@@ -237,6 +235,7 @@
 
 
 # Alt.: load facts for instances with tag filter and execute deploy commands
+# exec instance loop in prev playbook
 - name: Container bootstrap
   remote_user: docker
   hosts:
@@ -252,8 +251,8 @@
       register: stdout
     - debug:
         msg: "{{stdout.stdout_lines | join('')}}"
-    - name: Install Py3
+    - name: Whoami
       become: true
       become_method: sudo
       become_user: root
-      raw: apk -U add python3
+      raw: whoami
