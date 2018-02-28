@@ -9,9 +9,10 @@ docker image inspect <hash>
 - docker4x/guide-aws
 
 docker run -it --rm -v /:/mnt/host/ docker4x/shell-aws:17.12.0-ce-aws1 sh
-# load tar containers
-# execute userdata from aws metadata fake server
-# busybox /init
-# /etc/init.d/aws, /etc/init.d/docker
 # --privileged
 # --net=host --ipc=host --uts=host --pid=host --security-opt=seccomp=unconfined
+
+# busybox /init
+# /etc/init.d/aws, /etc/init.d/docker
+# load tar containers
+# execute userdata from aws metadata fake server

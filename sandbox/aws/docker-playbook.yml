@@ -1,0 +1,62 @@
+---
+- name: Query ip addresses of AWS instances
+  hosts: 127.0.0.1
+  connection: local
+  gather_facts: false
+  tags: []
+  vars:
+    project_name: docker
+    env: staging
+    app_name: "{{project_name}}-{{env}}"
+    aws_access_key_id:     "{{ lookup('ini', 'aws_access_key_id section=default file=~/.aws/credentials') }}"
+    aws_secret_access_key: "{{ lookup('ini', 'aws_secret_access_key section=default file=~/.aws/credentials') }}"
+    aws_region: us-east-2
+
+  tasks:
+
+    - ec2_instance_facts:
+        region: "{{aws_region}}"
+        filters:
+          'tag:App': "{{app_name}}"
+      register: ec2_facts
+
+    - name: Add new instance to the host group
+      add_host:
+        hostname: "{{item.public_ip_address}}"
+        groupname: launched
+      with_items: "{{ec2_facts.instances}}"
+
+
+- name: Bootstrap docker
+  hosts:
+    - launched
+  connection: ssh
+  remote_user: docker
+  gather_facts: false
+  tags: []
+  vars:
+    project_name: docker
+    env: staging
+    app_name: "{{project_name}}-{{env}}"
+    ssh_key_name: "{{app_name}}-key"
+    ssh_key_path: "./sandbox/aws/{{ssh_key_name}}.pem"
+    ansible_ssh_private_key_file: "{{ssh_key_path}}"
+
+  tasks:
+
+    - name: Whoami
+      become: true
+      become_method: sudo
+      become_user: root
+      raw: whoami
+      register: stdout
+    - debug:
+        msg: "Remote user: {{stdout.stdout_lines | join('')}}"
+
+    - name: Swarm init
+      shell: >
+        true
+      # docker swarm init --advertise-addr=eth0 --listen-addr=eth0
+      # docker swarm join-token -q worker
+      # wget -qO- http://169.254.169.254/latest/meta-data/local-ipv4
+      when: false
