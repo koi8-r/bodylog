@@ -213,6 +213,11 @@
           #!/bin/sh
           docker exec -ti shell-aws apk -U add python3
           # start-stop-daemon --start --background --user nobody -g nogroup --exec nc -- -l -p 2222 0.0.0.0 -e /bin/hostname
+        volumes:
+          - device_name: /dev/xvdb
+            device_type: standard  # volume_type: standard
+            volume_size: 20
+            delete_on_termination: true
         instance_tags:
           <<: *default_tags
           Name: "{{app_name}}-ec2"
@@ -242,3 +247,6 @@
       shell: >
         echo "{{item}}"
       with_items: "{{ groups[group_name] }}"
+
+
+# todo: ec2_tag untagged resources | http://docs.ansible.com/ansible/latest/ec2_tag_module.html
