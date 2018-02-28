@@ -9,8 +9,8 @@ services:
       - "8081:8080"
     networks:
       - bodylog-net
-    # volumes from:
-    #  - "./backend/src/:/app"
+    # volumes_from:
+    #  - www
     healthcheck:
       test: python3 -c "from urllib.request import urlopen; assert 200 == urlopen('http://127.0.0.1:8080').status"
       interval: 1m00s
