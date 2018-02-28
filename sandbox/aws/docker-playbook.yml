@@ -11,6 +11,7 @@
     aws_access_key_id:     "{{ lookup('ini', 'aws_access_key_id section=default file=~/.aws/credentials') }}"
     aws_secret_access_key: "{{ lookup('ini', 'aws_secret_access_key section=default file=~/.aws/credentials') }}"
     aws_region: us-east-2
+    group_name: launched
 
   tasks:
 
@@ -23,9 +24,12 @@
     - name: Add new instance to the host group
       add_host:
         hostname: "{{item.public_ip_address}}"
-        groupname: launched
+        groupname: "{{group_name}}"
+      when: item.public_ip_address is defined
       with_items: "{{ec2_facts.instances}}"
-
+    - name: Collected instances
+      debug:
+        msg: "{{ groups[group_name] }}"
 
 - name: Bootstrap docker
   hosts:
@@ -39,8 +43,9 @@
     env: staging
     app_name: "{{project_name}}-{{env}}"
     ssh_key_name: "{{app_name}}-key"
-    ssh_key_path: "./sandbox/aws/{{ssh_key_name}}.pem"
+    ssh_key_path: "{{playbook_dir}}/{{ssh_key_name}}.pem"
     ansible_ssh_private_key_file: "{{ssh_key_path}}"
+    ansible_ssh_extra_args: -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null
 
   tasks:
 

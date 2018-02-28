@@ -9,7 +9,7 @@
     env: staging
     app_name: "{{project_name}}-{{env}}"
     ssh_key_name: "{{app_name}}-key"
-    ssh_key_path: "./{{ssh_key_name}}.pem"
+    ssh_key_path: "{{playbook_dir}}/{{ssh_key_name}}.pem"
     aws_access_key_id:     "{{ lookup('ini', 'aws_access_key_id section=default file=~/.aws/credentials') }}"
     aws_secret_access_key: "{{ lookup('ini', 'aws_secret_access_key section=default file=~/.aws/credentials') }}"
     aws_instance_type: t2.micro
@@ -22,6 +22,7 @@
       Env: "{{env}}"
       Project: "{{project_name}}"
       App: "{{app_name}}"
+    group_name: launched
 
 
   tasks:
@@ -150,9 +151,10 @@
       tags: [ssh]
 
     - name: Save SSH key
+      # todo: save key path in host var
       copy:
         content: "{{ssh_key.key.private_key}}"
-        dest: "./{{ssh_key_path}}"
+        dest: "{{ssh_key_path}}"
         mode: !!str 0400
       when: ssh_key.changed
       tags: [ssh]
@@ -222,7 +224,7 @@
     - name: Add new instance to the host group
       add_host:
         hostname: "{{item.public_ip}}"
-        groupname: launched  # groups
+        groupname: "{{group_name}}"  # groups
       with_items: "{{ec2.tagged_instances}}"  # .tagged_instances
       changed_when: not true
 
@@ -235,3 +237,8 @@
         timeout: 300
       with_items: "{{ec2.tagged_instances}}"
       when: ec2 | changed
+
+    - name: Collected instances
+      shell: >
+        echo "{{item}}"
+      with_items: "{{ groups[group_name] }}"
