@@ -1,9 +1,9 @@
 ---
-- name: Init AWS docker cloud
+- name: Init AWS docker swarm cloud
   hosts: 127.0.0.1
   connection: local
   gather_facts: false
-  tags: [aws]
+  tags: []
   vars:
     project_name: docker
     env: staging
@@ -23,6 +23,7 @@
       Project: "{{project_name}}"
       App: "{{app_name}}"
     group_name: launched
+    noaws: false
 
 
   tasks:
@@ -40,7 +41,8 @@
           <<: *default_tags
           Name: *vpc_name
       register: vpc  # vpc.vpc.id
-      tags: [vpc]
+      tags: []
+      when: not noaws
 
     # VPC:DHCP
     - name: Create DHCP options
@@ -57,7 +59,8 @@
           <<: *default_tags
           Name: "{{app_name}}-dhcp"
       register: dhcp  # dhcp.dhcp_options_id
-      tags: [dhcp]
+      tags: []
+      when: not noaws
 
     # VPC:IGW
     - name: Create internet gateway
@@ -68,7 +71,8 @@
           <<: *default_tags
           Name: "{{app_name}}-igw"
       register: igw  # igw.gateway_id
-      tags: [igw]
+      tags: []
+      when: not noaws
 
     # VPC:Subnet
     - name: Create subnet
@@ -82,7 +86,8 @@
           <<: *default_tags
           Name: "{{app_name}}-subnet"
       register: subnet
-      tags: [subnet]
+      tags: []
+      when: not noaws
 
     # VPC:Route
     - name: Create subnet route table
@@ -101,7 +106,8 @@
           <<: *default_tags
           Name: "{{app_name}}-route"
       register: route
-      tags: [route]
+      tags: []
+      when: not noaws
 
     # VPC:Firewall
     - name: Create firewall
@@ -137,7 +143,8 @@
           <<: *default_tags
           Name: *vpc_name
       register: fw  # fw.group_id
-      tags: [fw]
+      tags: []
+      when: not noaws
 
 
     # EC2:SSH
@@ -148,7 +155,8 @@
         force: true
         wait: true
       register: ssh_key
-      tags: [ssh]
+      tags: []
+      when: not noaws
 
     - name: Save SSH key
       # todo: save key path in host var
@@ -156,8 +164,8 @@
         content: "{{ssh_key.key.private_key}}"
         dest: "{{ssh_key_path}}"
         mode: !!str 0400
-      when: ssh_key.changed
-      tags: [ssh]
+      tags: []
+      when: not noaws and ssh_key.changed
 
     - ec2_eni_facts:
         region: "{{aws_region}}"
@@ -166,6 +174,7 @@
           vpc-id: "{{vpc.vpc.id}}"
           subnet-id: "{{subnet.subnet.id}}"
       register: nic_facts
+      when: not noaws
     - debug:
         var: nic_facts
       when: not true
@@ -182,8 +191,9 @@
           - "{{fw.group_id}}"
         delete_on_termination: true
       register: nic  # nic.interface.id
-      tags: [nic]
-      when: true or not nic_facts.network_interfaces  # bug, stub: changed every time
+      tags: []
+      when: not noaws  # not nic_facts.network_interfaces
+      # bug: changed every time
       changed_when: nic.interface.private_ip_address != ip or
                     nic.interface.subnet_id != subnet.subnet.id or
                     nic.interface.vpc_id != vpc.vpc.id
@@ -198,7 +208,8 @@
         release_on_disassociation: true
         reuse_existing_ip_allowed: true
       register: eip
-      tags: [eip]
+      tags: []
+      when: not noaws
 
     # EC2:EC2
     - name: Create instance
@@ -211,8 +222,9 @@
           - "{{nic.interface.id}}"
         user_data: |
           #!/bin/sh
-          docker exec -ti shell-aws apk -U add python3
+          # docker exec -ti shell-aws apk -U add python3
           # start-stop-daemon --start --background --user nobody -g nogroup --exec nc -- -l -p 2222 0.0.0.0 -e /bin/hostname
+          # MY_PRIVATE_IP=$(wget -qO- http://169.254.169.254/latest/meta-data/local-ipv4)
         volumes:
           - device_name: /dev/xvdb
             device_type: standard  # volume_type: standard
@@ -225,13 +237,8 @@
         exact_count: 1
         wait: true
       register: ec2  # ec2.tagged_instances, .instances empty on reuse
-
-    - name: Add new instance to the host group
-      add_host:
-        hostname: "{{item.public_ip}}"
-        groupname: "{{group_name}}"  # groups
-      with_items: "{{ec2.tagged_instances}}"  # .tagged_instances
-      changed_when: not true
+      tags: []
+      when: not noaws
 
     - name: Wait for SSH
       wait_for:
@@ -241,12 +248,66 @@
         delay: 5
         timeout: 300
       with_items: "{{ec2.tagged_instances}}"
-      when: ec2 | changed
+      tags: []
+      when: not noaws and (ec2 | changed)
+
+    - ec2_instance_facts:
+        region: "{{aws_region}}"
+        filters:
+          'tag:App': "{{app_name}}"
+      register: ec2_facts
+      tags: []
+      when: noaws
+
+    - name: Add new instance to the host group
+      add_host:
+        hostname: "{{item.public_ip_address|default(item.public_ip)}}"
+        groupname: "{{group_name}}"  # groups
+      tags: []
+      when: not noaws or item.public_ip_address is defined
+      with_items: "{{ec2.tagged_instances if not noaws else ec2_facts.instances}}"
+      changed_when: not true
 
     - name: Collected instances
+      debug:
+        msg: "Collected instances: {{groups[group_name] | join(', ')}}"
+
+  # todo: ec2_tag untagged resources | http://docs.ansible.com/ansible/latest/ec2_tag_module.html
+
+
+- name: Bootstrap docker swarm on instance
+  hosts:
+    - launched
+  connection: ssh
+  remote_user: docker
+  gather_facts: false
+  tags: []
+  vars:
+    project_name: docker
+    env: staging
+    app_name: "{{project_name}}-{{env}}"
+    ssh_key_name: "{{app_name}}-key"
+    ssh_key_path: "{{playbook_dir}}/{{ssh_key_name}}.pem"
+    ansible_ssh_private_key_file: "{{ssh_key_path}}"
+    ansible_ssh_extra_args: -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null
+    ansible_python_interpreter: /usr/bin/python3
+
+  tasks:
+
+    - name: Install Py3
+      become: true
+      become_method: sudo
+      become_user: root
+      raw: >
+        apk -U add python3
+
+    - name: Init swarm
       shell: >
-        echo "{{item}}"
-      with_items: "{{ groups[group_name] }}"
+        docker swarm init --advertise-addr=eth0 --listen-addr=eth0
 
-
-# todo: ec2_tag untagged resources | http://docs.ansible.com/ansible/latest/ec2_tag_module.html
+    - name: Show swarm join token
+      shell: >
+        docker swarm join-token -q worker
+      register: stdout
+    - debug:
+        msg: "Swarm worker join token: {{stdout.stdout_lines | join('')}}"
