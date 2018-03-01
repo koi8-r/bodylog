@@ -182,7 +182,7 @@
     # EC2:NIC
     - name: Create NIC
       ec2_eni:
-        description: "{{app_name}}-nic"
+        description: &nic_name "{{app_name}}-nic"
         region: "{{aws_region}}"
         device_index: 0
         private_ip_address: "{{ip}}"
@@ -197,6 +197,12 @@
       changed_when: nic.interface.private_ip_address != ip or
                     nic.interface.subnet_id != subnet.subnet.id or
                     nic.interface.vpc_id != vpc.vpc.id
+    - ec2_tag:
+        region: "{{aws_region}}"
+        resource: "{{nic.interface.id}}"
+        tags:
+          <<: *default_tags
+          Name: *nic_name
 
     # EC2:EIP
     - name: Create EIP
@@ -210,6 +216,18 @@
       register: eip
       tags: []
       when: not noaws
+
+    - ec2_tag:
+        region: "{{aws_region}}"
+        resource: "{{eip.allocation_id}}"
+        tags:
+          <<: *default_tags
+          Name: "{{app_name}}-eip"
+
+    - set_fact:
+        public_ip: "{{eip.public_ip}}"
+    - debug:
+        var: public_ip
 
     # EC2:EC2
     - name: Create instance
