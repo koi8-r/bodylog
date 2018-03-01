@@ -1,9 +1,14 @@
 from aiohttp import web as _httpd
 from aiohttp.web import Request, Response
 import types
+import logging
+import json
 
 
 __all__ = ['httpd']
+
+
+log = logging.getLogger()
 
 
 def route(this, verb='GET', path='/'):
@@ -39,4 +44,16 @@ async def about(req: Request):
 @httpd.route(path='/uuid')
 async def about(req: Request):
     from .uuid_sinleton import _uuid
-    return Response(text=str(_uuid))
+    return Response(text=json.dumps(dict(uuid=str(_uuid))).encode('utf-8'), content_type="application/json")
+
+
+@httpd.route(path='/io')
+async def about(req: Request):
+    body = bytearray()
+    while True:
+        chunk = await req._payload.readany()
+        body.extend(chunk)
+        if not chunk:
+            break
+
+    return Response(status=200, text=str(len(body)))
