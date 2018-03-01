@@ -1,5 +1,6 @@
 from aiohttp import web as _httpd
 from aiohttp.web import Request, Response
+from aiohttp.streams import StreamReader
 import types
 import logging
 import json
@@ -44,16 +45,18 @@ async def about(req: Request):
 @httpd.route(path='/uuid')
 async def about(req: Request):
     from .uuid_sinleton import _uuid
-    return Response(text=json.dumps(dict(uuid=str(_uuid))).encode('utf-8'), content_type="application/json")
+    return Response(text=json.dumps(dict(uuid=str(_uuid))), content_type="application/json")
 
 
 @httpd.route(path='/io')
 async def about(req: Request):
+    assert isinstance(req.content, StreamReader, )
+
     body = bytearray()
     while True:
-        chunk = await req._payload.readany()
+        chunk = await req.content.read(1)
         body.extend(chunk)
         if not chunk:
             break
 
-    return Response(status=200, text=str(len(body)))
+    return Response(status=200, body=body)  # text=body.decode('utf-8')
