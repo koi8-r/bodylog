@@ -8,15 +8,16 @@ import json
 
 __all__ = ['httpd']
 
-
 log = logging.getLogger()
 
 
 def route(this, verb='GET', path='/'):
     """Add decorated handler to this.app routes"""
+
     def decorator(fn):
         this.router.add_route(verb, path, fn)
         return fn
+
     return decorator
 
 
@@ -29,7 +30,6 @@ httpd = _httpd.Application()
 httpd.route = types.MethodType(route, httpd)
 # noinspection PyArgumentList
 httpd.run = types.MethodType(run, httpd)
-
 
 httpd.MAX_UPLOAD_SIZE = 1024  # 1024**2 = 1M
 
@@ -46,17 +46,41 @@ async def about(req: Request):
     return Response(text='About')
 
 
-@httpd.route(path='/uuid')
-async def about(req: Request):
+@httpd.route(path='/guid')
+async def guid(req: Request):
     assert req.__class__ is Request
 
-    from .uuid_sinleton import uuid as my_uuid
-    return Response(text=json.dumps({'uuid': my_uuid}),
-                    content_type="application/json")
+    accept = req.headers.get('accept') or '*/*'
+    from .uuid_sinleton import guid as my_guid
+
+    res =\
+        dict(text=json.dumps({'uuid': my_guid}),
+             content_type='application/json') \
+        if accept in ['application/json', '*/*']\
+        else \
+        dict(text=my_guid,
+             content_type='text/plain')
+
+    return Response(**res)
 
 
-@httpd.route(path='/io')
-async def about(req: Request):
+@httpd.route(verb='GET', path='/health')
+async def health_check(req: Request):
+    assert req.__class__ is Request
+    from .health import state
+    return Response(status=200 if state else 500)
+
+
+@httpd.route(verb='POST', path='/failed')
+async def health_toggle(req: Request):
+    assert req.__class__ is Request
+    from .health import state
+    state['failed'] = not state['failed']
+    return Response(status=200)
+
+
+@httpd.route(verb='POST', path='/io')
+async def io(req: Request):
     assert isinstance(req.content, StreamReader, )
 
     body = bytearray()

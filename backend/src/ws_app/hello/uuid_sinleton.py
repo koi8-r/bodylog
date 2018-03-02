@@ -1,6 +1,6 @@
 from uuid import uuid4
 
-uuid = uuid4()
+guid = str(uuid4())
 
 
-__all__ = ['uuid']
+__all__ = ['guid']

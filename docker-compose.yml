@@ -10,7 +10,7 @@ services:
     networks:
       - bodylog-net
     healthcheck:
-      test: python3 -c "from urllib.request import urlopen; assert 200 == urlopen('http://127.0.0.1:8080').status"
+      test: python3 -c "from urllib.request import urlopen; assert 200 == urlopen('http://127.0.0.1:8080/health').status"
       interval: 1m00s
       timeout: 10s
       retries: 1
@@ -47,16 +47,16 @@ services:
         delay: 60s
         max_attempts: 3
         window: 120s
-  visualizer:
-    image: dockersamples/visualizer:stable
-    ports:
-      - "8090:8080"
-    stop_grace_period: 1m00s
-    volumes:
-      - "/var/run/docker.sock:/var/run/docker.sock"
-    deploy:
-      placement:
-        constraints: [node.role == manager]
+  # visualizer:
+  #   image: dockersamples/visualizer:stable
+  #   ports:
+  #     - "8090:8080"
+  #   stop_grace_period: 1m00s
+  #   volumes:
+  #     - "/var/run/docker.sock:/var/run/docker.sock"
+  #   deploy:
+  #     placement:
+  #       constraints: [node.role == manager]
 
 networks:
   bodylog-net:
