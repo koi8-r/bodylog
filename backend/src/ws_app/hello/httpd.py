@@ -1,5 +1,5 @@
 from aiohttp import web as _httpd
-from aiohttp.web import Request, Response
+from aiohttp.web import Request, Response, HTTPRequestEntityTooLarge
 from aiohttp.streams import StreamReader
 import types
 import logging
@@ -31,21 +31,28 @@ httpd.route = types.MethodType(route, httpd)
 httpd.run = types.MethodType(run, httpd)
 
 
+httpd.MAX_UPLOAD_SIZE = 1024  # 1024**2 = 1M
+
+
 @httpd.route(path='/')
 async def index(req: Request):
     assert req.__class__ is Request
-    return Response(text='Hello, World!')
+    return Response(text='index')
 
 
 @httpd.route(path='/about')
 async def about(req: Request):
+    assert req.__class__ is Request
     return Response(text='About')
 
 
 @httpd.route(path='/uuid')
 async def about(req: Request):
-    from .uuid_sinleton import _uuid
-    return Response(text=json.dumps(dict(uuid=str(_uuid))), content_type="application/json")
+    assert req.__class__ is Request
+
+    from .uuid_sinleton import uuid as my_uuid
+    return Response(text=json.dumps({'uuid': my_uuid}),
+                    content_type="application/json")
 
 
 @httpd.route(path='/io')
@@ -55,6 +62,10 @@ async def about(req: Request):
     body = bytearray()
     while True:
         chunk = await req.content.read(1)
+
+        if len(body) + len(chunk) > req.app.MAX_UPLOAD_SIZE:
+            raise HTTPRequestEntityTooLarge
+
         body.extend(chunk)
         if not chunk:
             break
