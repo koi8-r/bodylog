@@ -11,6 +11,7 @@ LABEL maintainer="Burchenya Valentin <vp.burchenya@oz.net.ru>"
 
 WORKDIR /usr/local/app
 
+VOLUME sdata
 COPY ./src/ .
 COPY ./ep.sh .
 RUN chmod +x ep.sh

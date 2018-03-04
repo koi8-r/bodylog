@@ -1,52 +1,90 @@
+---
 version: "3.4"
+
+x-default-restart-policy:
+  &default-restart-policy
+  condition: on-failure
+  delay: 60s
+  max_attempts: 3
+  window: 120s
+
+x-default-deploy:
+  &default-deploy
+  mode: replicated
+  replicas: 1
+  restart_policy: *default-restart-policy
+  placement:
+    constraints:
+      - node.role == manager
+      - node.hostname != prod
+
+x-hostname-frmt: &hostname-frmt "{{.Node.Hostname}}_{{.Service.Name}}_{{.Task.ID}}"
+
 services:
   api:
     container_name: "bodylog-api"
+    hostname: *hostname-frmt
     image: vpburchenya/bodylog-api:latest
     build: ./backend/
-    expose: [8080, 80]
     ports:
-      - "8081:8080"
+      - "8081:8080/tcp"
     networks:
       - bodylog-net
+    volumes:
+      - shared:/mnt/shared
     healthcheck:
-      test: python3 -c "from urllib.request import urlopen; assert 200 == urlopen('http://127.0.0.1:8080/health').status"
+      test: >-
+        python3 -c "from urllib.request import urlopen;
+        assert 200 == urlopen('http://127.0.0.1:8080/health').status,
+        'failed state'"
       interval: 1m00s
       timeout: 10s
       retries: 1
       start_period: 10s
     deploy:
-      mode: replicated  # global
-      labels: 
+      <<: *default-deploy
+      labels:
         - ru.net.oz.app=bodylog-api
-      replicas: 1
-      restart_policy:
-        condition: on-failure
-      placement:
-        constraints: [node.role == manager]
-    working_dir: "/usr/local/app/"
-    command: ["python3", "/usr/local/app/run.py"]
+
   www:
+    depends_on: ["api", "html"]
     container_name: "bodylog-www"
-    depends_on: ["api"]
+    hostname: *hostname-frmt
     image: vpburchenya/bodylog-www:latest
-    build:
-      context: ./frontend/
-      dockerfile: Dockerfile
-    expose: [8080, 80]
+    build: ./frontend/
     ports:
-      - "8082:80/tcp"
+      - '8082:80/tcp'
     networks:
       - bodylog-net
+    volumes:
+      - shared:/mnt/shared
     deploy:
-      replicas: 1
+      <<: *default-deploy
       labels:
         - ru.net.oz.app=bodylog-www
-      restart_policy:
-        condition: on-failure
-        delay: 60s
-        max_attempts: 3
-        window: 120s
+
+  html:
+    image: vpburchenya/bodylog-html:latest
+    build:
+      context: ./frontend/
+      dockerfile: Dockerfile-html
+    tty: true
+    stdin_open: true
+    command: ["true"]
+
+  meta:
+    container_name: "bodylog-meta"
+    hostname: *hostname-frmt
+    image: debian:buster-slim
+    networks:
+      bodylog-net:
+        ipv4_address: 169.254.169.254
+    deploy:
+      <<: *default-deploy
+      labels:
+        - ru.net.oz.app=bodylog-meta
+    command: cat
+
   # visualizer:
   #   image: dockersamples/visualizer:stable
   #   ports:
@@ -54,9 +92,30 @@ services:
   #   stop_grace_period: 1m00s
   #   volumes:
   #     - "/var/run/docker.sock:/var/run/docker.sock"
-  #   deploy:
-  #     placement:
-  #       constraints: [node.role == manager]
+
+  portainer:
+    image: portainer/portainer
+    ports:
+      - '9000:9000'
+    volumes:
+      - ./portainer_data:/data
+      - /var/run/docker.sock:/var/run/docker.sock
+    deploy:
+      mode: global  # on each node
+      placement:
+        constraints:
+          - node.role == manager
+
 
 networks:
   bodylog-net:
+  test-net:
+    driver: overlay
+    ipam:
+      config:
+        - subnet: 192.168.0.0/24
+          # aux_addresses:
+          #   meta: 192.168.0.254
+
+volumes:
+  shared:

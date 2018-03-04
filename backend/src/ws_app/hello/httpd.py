@@ -43,7 +43,7 @@ async def index(req: Request):
 @httpd.route(path='/about')
 async def about(req: Request):
     assert req.__class__ is Request
-    return Response(text='About')
+    return Response(text='Ab111out')
 
 
 @httpd.route(path='/guid')
@@ -68,10 +68,10 @@ async def guid(req: Request):
 async def health_check(req: Request):
     assert req.__class__ is Request
     from .health import state
-    return Response(status=200 if state else 500)
+    return Response(status=200 if not state['failed'] else 500)
 
 
-@httpd.route(verb='POST', path='/failed')
+@httpd.route(verb='POST', path='/health')
 async def health_toggle(req: Request):
     assert req.__class__ is Request
     from .health import state
@@ -95,3 +95,19 @@ async def io(req: Request):
             break
 
     return Response(status=200, body=body)  # text=body.decode('utf-8')
+
+
+@httpd.route(verb='GET', path='/hostname')
+async def default_ip_address(req: Request):
+    assert req.__class__ is Request
+    from socket import gethostname
+    return Response(status=200, text=gethostname())
+
+
+@httpd.route(verb='GET', path='/ip')
+async def default_ip_address(req: Request):
+    assert req.__class__ is Request
+    from socket import socket, AF_INET, SOCK_DGRAM
+    s = socket(AF_INET, SOCK_DGRAM)
+    s.connect(('8.8.8.8', 0, ))
+    return Response(status=200, text=s.getsockname()[0])

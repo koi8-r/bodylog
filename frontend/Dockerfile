@@ -11,6 +11,7 @@ RUN apt-get install --no-install-recommends -qy \
     && rm -rf /var/lib/apt/lists/*
 
 
+VOLUME sdata
 COPY ./conf/nginx.conf /etc/nginx/nginx.conf
 COPY ./html/ /var/www/html/
 
