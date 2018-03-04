@@ -1,0 +1,39 @@
+{
+    "name": "bodylog",
+    "version": "0.0.1",
+    "description": "bodylog",
+    "main": "index.js",
+    "scripts": {
+        "build": "webpack"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/koi8-r/bodylog.git"
+    },
+    "author": "koi8-r <me@oz.net.ru> (http://oz.net.ru/)",
+    "license": "ISC",
+    "bugs": {
+        "url": "https://github.com/koi8-r/bodylog/issues"
+    },
+    "dependencies": {
+        "vue": "^2.5.0",
+        "axios": "*",
+        "lodash": "*",
+        "bootstrap": "^4.0.0",
+        "popper.js": "*",
+        "jquery": "*"
+    },
+    "devDependencies": {
+        "webpack": "^4.1.0",
+        "babel-core": "*",
+        "babel-loader": "*",
+        "babel-preset-env": "*",
+        "file-loader": "*",
+        "raw-loader": "*",
+        "style-loader": "*",
+        "css-loader": "*",
+        "clean-webpack-plugin": "*",
+        "copy-webpack-plugin": "*"
+    },
+    "homepage": "https://github.com/koi8-r/bodylog#readme"
+}
