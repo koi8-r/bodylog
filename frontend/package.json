@@ -25,6 +25,7 @@
     },
     "devDependencies": {
         "webpack": "^4.1.0",
+        "webpack-cli": "*",
         "babel-core": "*",
         "babel-loader": "*",
         "babel-preset-env": "*",

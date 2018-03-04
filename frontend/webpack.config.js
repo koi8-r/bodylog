@@ -5,7 +5,7 @@ const webpack = require('webpack') ;
 const path = require('path') ;
 const CopyWebpackPlugin = require('copy-webpack-plugin') ;
 const CleanWebpackPlugin = require('clean-webpack-plugin') ;
-const ExtractTextPlugin = require('extract-text-webpack-plugin') ;
+// const ExtractTextPlugin = require('extract-text-webpack-plugin') ;
 
 const dist_dir = path.resolve(__dirname, 'dist') ;
 const babel_presets = ['env']
@@ -22,13 +22,14 @@ module.exports = {
     },
     resolve: {
         alias: {
-            vue: 'vue/dist/vue.min.js'  // by default esm runtime does not include template compiler
+            vue: 'vue/dist/vue.min.js',  // by default esm runtime does not include template compiler
+            '@': path.join(__dirname, '.', '.')
         }
     },
     plugins: [
         new CleanWebpackPlugin([dist_dir]),
         new CopyWebpackPlugin([
-            { from: 'html/*.html', to: '.' },
+            { from: 'html/*.html', to: './[name].[ext]' },
             { from: 'favicon.ico', to: '.' }
         ]),
         // new ExtractTextPlugin('css/[name].css'),
@@ -38,7 +39,7 @@ module.exports = {
             $: 'jquery',
             jQuery: 'jquery',
             'window.jQuery': 'jquery',
-            Popper: ['popper.js', 'default']  // default es2015 export
+            Popper: ['popper.js', 'default'],  // default es2015 export
             VuE: ['vue/dist/vue.esm.js', 'default']
         })
     ],
@@ -50,13 +51,13 @@ module.exports = {
                     loader: 'raw-loader'
                 }
             },
-            {
-                test: /\.css$/,
-                use: ExtractTextPlugin.extract({
-                    fallback: 'style-loader',
-                    use: 'css-loader'
-                })
-            },
+            // {
+            //     test: /\.css$/,
+            //     use: ExtractTextPlugin.extract({
+            //         fallback: 'style-loader',
+            //         use: 'css-loader'
+            //     })
+            // },
             {
                 test: /\.js$/,
                 exclude: /node_modules/,
