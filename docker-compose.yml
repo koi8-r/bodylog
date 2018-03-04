@@ -1,6 +1,14 @@
 ---
 version: "3.4"
 
+x-default-service:
+  &default-service
+  # docker swarm internal dns server: `127.0.0.11
+  dns_search:
+    - oz.net.lan
+    - b_bodylog-net
+
+
 x-default-restart-policy:
   &default-restart-policy
   condition: on-failure
@@ -22,6 +30,7 @@ x-hostname-frmt: &hostname-frmt "{{.Node.Hostname}}_{{.Service.Name}}_{{.Task.ID
 
 services:
   api:
+    <<: *default-service
     container_name: "bodylog-api"
     hostname: *hostname-frmt
     image: vpburchenya/bodylog-api:latest
@@ -29,7 +38,9 @@ services:
     ports:
       - "8081:8080/tcp"
     networks:
-      - bodylog-net
+      bodylog-net:
+        aliases:
+          - ws
     volumes:
       - shared:/mnt/shared
     healthcheck:
@@ -44,9 +55,10 @@ services:
     deploy:
       <<: *default-deploy
       labels:
-        - ru.net.oz.app=bodylog-api
+        ru.net.oz.app: bodylog-api
 
   www:
+    <<: *default-service
     depends_on: ["api", "html"]
     container_name: "bodylog-www"
     hostname: *hostname-frmt
@@ -61,7 +73,7 @@ services:
     deploy:
       <<: *default-deploy
       labels:
-        - ru.net.oz.app=bodylog-www
+        ru.net.oz.app: bodylog-www
 
   html:
     image: vpburchenya/bodylog-html:latest
@@ -82,7 +94,7 @@ services:
     deploy:
       <<: *default-deploy
       labels:
-        - ru.net.oz.app=bodylog-meta
+        ru.net.oz.app: bodylog-meta
     command: cat
 
   # visualizer:
@@ -111,6 +123,7 @@ networks:
   bodylog-net:
   test-net:
     driver: overlay
+    attachable: true
     ipam:
       config:
         - subnet: 192.168.0.0/24
