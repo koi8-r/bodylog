@@ -84,6 +84,22 @@ services:
     stdin_open: true
     command: ["true"]
 
+  lb:
+    <<: *default-service
+    depends_on: ["api", "www"]
+    container_name: "bodylog-lb"
+    hostname: *hostname-frmt
+    image: vpburchenya/bodylog-lb:latest
+    build: ./lb/
+    ports:
+      - '80:80/tcp'
+    networks:
+      - bodylog-net
+    deploy:
+      <<: *default-deploy
+      labels:
+        ru.net.oz.app: bodylog-lb
+
   meta:
     container_name: "bodylog-meta"
     hostname: *hostname-frmt
