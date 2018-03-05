@@ -1,13 +1,15 @@
 ---
 version: "3.4"
 
+
+x-web-domainname: &web-domainname oz.net.lan
+
 x-default-service:
   &default-service
   # docker swarm internal dns server: `127.0.0.11
+  # domainname: *domainname
   dns_search:
-    - oz.net.lan
-    - b_bodylog-net
-
+    -
 
 x-default-restart-policy:
   &default-restart-policy
@@ -91,6 +93,8 @@ services:
     hostname: *hostname-frmt
     image: vpburchenya/bodylog-lb:latest
     build: ./lb/
+    environment:
+      WEB_DOMAIN: *web-domainname
     ports:
       - '80:80/tcp'
     networks:
