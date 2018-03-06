@@ -12,8 +12,11 @@ RUN apt-get install --no-install-recommends -qy \
 
 
 ONBUILD COPY ./conf/nginx.conf /etc/nginx/nginx.conf
+ONBUILD COPY ./ep.sh .
+ONBUILD RUN chmod +x /ep.sh
 
 ONBUILD EXPOSE 80
 
 
-ONBUILD CMD '/usr/sbin/nginx'
+ONBUILD ENTRYPOINT ["/ep.sh"]
+ONBUILD CMD ["/usr/sbin/nginx"]

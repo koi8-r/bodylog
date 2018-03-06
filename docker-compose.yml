@@ -8,8 +8,7 @@ x-default-service:
   &default-service
   # docker swarm internal dns server: `127.0.0.11
   # domainname: *domainname
-  dns_search:
-    -
+  dns_search: []
 
 x-default-restart-policy:
   &default-restart-policy
