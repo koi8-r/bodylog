@@ -42,6 +42,7 @@ RUN chmod 2750 /var/run/postgresql/${PG_MAJOR}-main.pg_stat_tmp/
 RUN echo "host all all 0.0.0.0/0 md5" >> /etc/postgresql/${PG_MAJOR}/main/pg_hba.conf
 
 
+# todo: resolve PGPASSWD inline and unset PGPASSWD env, change owner and perm of ep.sh to postgres and 400
 RUN (echo '#!/bin/bash' ; \
      echo 'set -o pipefail' ; \
      echo -n "echo -e \"ALTER USER postgres PASSWORD '\${PGPASSWD:-postgres}' ;\\\n\"" ; \
