@@ -32,6 +32,7 @@ x-hostname-frmt: &hostname-frmt "{{.Node.Hostname}}_{{.Service.Name}}_{{.Task.ID
 services:
   api:
     <<: *default-service
+    depends_on: ["db"]
     container_name: "bodylog-api"
     hostname: *hostname-frmt
     image: vpburchenya/bodylog-api:latest
@@ -103,6 +104,28 @@ services:
       labels:
         ru.net.oz.app: bodylog-lb
 
+  db:
+    <<: *default-service
+    container_name: "bodylog-db"
+    hostname: *hostname-frmt
+    image: vpburchenya/postgresql:latest
+    build: ./postgresql/
+    environment:
+      PGPASSWD: 'postgres'
+    ports:
+      - '5432:5432/tcp'
+    networks:
+      bodylog-net:
+        aliases:
+          - sql
+    # volumes:
+    #   - database:/var/lib/postgresql/
+
+    deploy:
+      <<: *default-deploy
+      labels:
+        ru.net.oz.app: bodylog-db
+
   meta:
     container_name: "bodylog-meta"
     hostname: *hostname-frmt
@@ -151,3 +174,4 @@ networks:
 
 volumes:
   shared:
+  database:
