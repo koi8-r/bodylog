@@ -3,7 +3,9 @@ FROM debian:buster-slim
 LABEL maintainer="Burchenya Valentin <vp.burchenya@oz.net.ru>"
 
 
+ENV locale ru_RU.UTF-8
 ENV PG_MAJOR 10
+
 
 ENV LANG C.UTF-8
 ENV DEBIAN_FRONTEND noninteractive
@@ -20,10 +22,14 @@ RUN apt-get install --no-install-recommends -qy \
     && true
 
 
-RUN localedef -i ru_RU -c -f UTF-8 -A /etc/locale.alias ru_RU.UTF-8
-ENV LANG ru_RU.UTF8
+# RUN localedef -i ru_RU -c -f UTF-8 -A /etc/locale.alias ru_RU.UTF-8
+# locale-gen work
+RUN localedef -i "${locale%.*}" -c -f "${locale#*.}" -A /etc/locale.alias "${locale}"
+ENV LANG $locale
+
 # deb postinst script during cluster init read locale from
-RUN echo 'LANG="ru_RU.UTF-8"' >> /etc/default/locale
+# update-locale work
+RUN echo "LANG=\"${locale}\"" >> /etc/default/locale
 
 
 RUN echo "deb http://apt.postgresql.org/pub/repos/apt/ buster-pgdg main" >> /etc/apt/sources.list.d/postgresql.list
