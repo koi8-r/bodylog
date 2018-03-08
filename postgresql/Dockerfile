@@ -22,6 +22,8 @@ RUN apt-get install --no-install-recommends -qy \
 
 RUN localedef -i ru_RU -c -f UTF-8 -A /etc/locale.alias ru_RU.UTF-8
 ENV LANG ru_RU.UTF8
+# deb postinst script during cluster init read locale from
+RUN echo 'LANG="ru_RU.UTF-8"' >> /etc/default/locale
 
 
 RUN echo "deb http://apt.postgresql.org/pub/repos/apt/ buster-pgdg main" >> /etc/apt/sources.list.d/postgresql.list
