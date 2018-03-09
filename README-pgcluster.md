@@ -21,4 +21,8 @@
 
 
 - `synchronous_commit = remote_apply`
+- `synchronous_standby_names = '*'`
 - rw master, ro slave, app balance
+
+- `wal_log_hints = on` (pg_rewind)
+- `recovery_target_timeline = 'latest'`
