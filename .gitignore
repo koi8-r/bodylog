@@ -5,6 +5,8 @@
 *.pem
 /venv/
 **/*.retry
+/portainer_data/
+!/portainer_data/.geetkeep
 
 # Elastic Beanstalk Files
 .elasticbeanstalk/*

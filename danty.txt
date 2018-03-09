@@ -1,0 +1,43 @@
+./Dockerrun.aws.json:            "name": "bodylog-api",
+./Dockerrun.aws.json:            "name": "bodylog-www",
+./backend/Dockerfile:# vpburchenya/bodylog-api
+./README-docker.md:- Run container from image: docker run --rm --name bodylog-api -P vpburchenya/py3-ws:latest
+./README-docker.md:- Show ports: docker port bodylog-api
+./README-docker.md:- Container shell: docker run -it --rm --name bodylog-api -P vpburchenya/py2-ws:latest bash
+./README-docker.md:- Compose, build and run single container: docker-compose up --build bodylog-api
+./README-docker.md:- Compose, run cli shell: docker-compose run --rm bodylog-api bash
+./.elasticbeanstalk/config.yml:  application_name: bodylog
+./README-swarm-overlay-network.md:docker run --rm -ti --network temp vpburchenya/bodylog-api:latest cat /etc/resolv.conf
+./docker-compose.yml:    container_name: "bodylog-api"
+./docker-compose.yml:    image: vpburchenya/bodylog-api:latest
+./docker-compose.yml:      bodylog-net:
+./docker-compose.yml:        ru.net.oz.app: bodylog-api
+./docker-compose.yml:    container_name: "bodylog-www"
+./docker-compose.yml:    image: vpburchenya/bodylog-www:latest
+./docker-compose.yml:      - bodylog-net
+./docker-compose.yml:        ru.net.oz.app: bodylog-www
+./docker-compose.yml:    image: vpburchenya/bodylog-html:latest
+./docker-compose.yml:    container_name: "bodylog-lb"
+./docker-compose.yml:    image: vpburchenya/bodylog-lb:latest
+./docker-compose.yml:      - bodylog-net
+./docker-compose.yml:        ru.net.oz.app: bodylog-lb
+./docker-compose.yml:    container_name: "bodylog-db"
+./docker-compose.yml:      bodylog-net:
+./docker-compose.yml:        ru.net.oz.app: bodylog-db
+./docker-compose.yml:    container_name: "bodylog-meta"
+./docker-compose.yml:      bodylog-net:
+./docker-compose.yml:        ru.net.oz.app: bodylog-meta
+./docker-compose.yml:  bodylog-net:
+./lb/Dockerfile:# vpburchenya/bodylog-lb
+./sandbox/playbook.yml:    project_name: bodylog
+./frontend/package-lock.json:    "name": "bodylog",
+./frontend/Dockerfile:# vpburchenya/bodylog-www
+./frontend/package.json:    "name": "bodylog",
+./frontend/package.json:    "description": "bodylog",
+./frontend/package.json:        "url": "git+https://github.com/koi8-r/bodylog.git"
+./frontend/package.json:        "url": "https://github.com/koi8-r/bodylog/issues"
+./frontend/package.json:    "homepage": "https://github.com/koi8-r/bodylog#readme"
+./DockerService.md:docker build -t vpburchenya/bodylog-api:latest backend/
+./DockerService.md:docker push vpburchenya/bodylog-api:latest
+./DockerService.md:docker service create --name test -p 8080:8080 vpburchenya/bodylog-api:latest
+./DockerService.md:  -p 8181:80 vpburchenya/bodylog-lb
