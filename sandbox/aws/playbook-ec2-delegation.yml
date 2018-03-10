@@ -1,0 +1,29 @@
+---
+- name: Collect instances
+  hosts:
+    - localhost
+  connection: local
+  gather_facts: false
+  tasks:
+    - add_host:
+        hostname: "127.0.0.1"
+        groupname: servers
+
+    - set_fact:
+        x: y
+
+    - set_fact:
+        x: z
+      delegate_to: "{{groups['servers'][0]}}"
+
+    - debug:
+        var: hostvars
+      delegate_to: "{{groups['servers'][0]}}"
+
+    - debug:
+        var: x
+      # delegate_facts: true
+      delegate_to: "{{groups['servers'][0]}}"
+
+    - debug:
+        var: x
