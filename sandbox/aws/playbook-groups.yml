@@ -1,0 +1,17 @@
+---
+# ansible-playbook -i 'homes,' sandbox/aws/playbook-groups.yml -vvv
+- name: Init home swarm
+  connection: local
+  gather_facts: false
+  hosts:
+    - homes
+  tasks:
+    - debug:
+        msg: home
+
+- name: Init cloud swarm
+  hosts:
+    - clouds
+  tasks:
+    - debug:
+        msg: cloud

@@ -26,3 +26,6 @@
 
 - `wal_log_hints = on` (pg_rewind)
 - `recovery_target_timeline = 'latest'`
+
+- uri: `postgresql://host1:port2,host2:port2/?target_session_attrs=read-write`
+- temp slots

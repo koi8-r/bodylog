@@ -1,0 +1,6 @@
+django
+storm
+peewee
+sqlalchemy
+psycopg2
+marshmallow
