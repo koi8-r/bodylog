@@ -38,4 +38,6 @@ Docker for AWS instance user data: >
     aws ec2 describe-instance-attribute --attribute userData --output text
     --query "UserData.Value" --instance-id i-00d6dcd630347ed43
     | base64 -d | vim -
+Connect to host from container: >
+    docker run --rm -ti --net host alpine sh
 

@@ -1,1 +1,4 @@
 aiohttp
+aiopg
+psycopg2-binary
+sqlalchemy
