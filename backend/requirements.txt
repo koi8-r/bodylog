@@ -1,5 +1,6 @@
 aiohttp
 aiopg
 psycopg2-binary
+marshmallow
 sqlalchemy
 webargs
