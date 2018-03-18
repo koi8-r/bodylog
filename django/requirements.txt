@@ -4,3 +4,4 @@ peewee
 sqlalchemy
 psycopg2
 marshmallow
+python-mimeparse
